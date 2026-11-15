@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-Linux-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://ubuntu.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-[![GitHub Profile](https://img.shields.io/badge/Developer-Nasim--Samiu-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nasim-Sami)
+[![GitHub Profile](https://img.shields.io/badge/Developer-Nasim--Sami-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nasim-Sami)
 
 **A curated collection of practical, production-oriented ROS 2 robotics projects.**  
 Featuring SLAM Mapping, Autonomous Navigation (Nav2), Computer Vision Tracking, AI Gesture Teleoperation, and Industrial Robot Manipulator Motion Planning (MoveIt 2 & OMPL).
