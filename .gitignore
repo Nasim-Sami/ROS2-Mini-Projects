@@ -1,0 +1,15 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ROS 2 build artifacts
+build/
+install/
+log/
+
+# IDE & Editor files
+.vscode/
+.idea/
+*.swp
+*~
