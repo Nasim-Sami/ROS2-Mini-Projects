@@ -4,7 +4,7 @@
 [![Nav2](https://img.shields.io/badge/Navigation2-Active-green?logo=ros)](https://navigation.ros.org/)
 [![SLAM Toolbox](https://img.shields.io/badge/SLAM-SLAM__Toolbox-orange)](https://github.com/SteveMacenski/slam_toolbox)
 [![Gazebo](https://img.shields.io/badge/Simulation-Gazebo-blueviolet)](https://gazebosim.org/)
-[![Author](https://img.shields.io/badge/Author-Nasim--Samiu-black?logo=github)](https://github.com/Nasim-Samiu)
+[![Author](https://img.shields.io/badge/Author-Nasim--Samiu-black?logo=github)](https://github.com/Nasim-Sami)
 
 > An end-to-end autonomous mobile robotics pipeline covering real-time SLAM (Simultaneous Localization and Mapping), map serialization, map-based AMCL localization, Nav2 lifecycle management, and programmable multi-waypoint patrol using the Python `nav2_simple_commander` API.
 
@@ -220,5 +220,5 @@ python3 turtlebot3_waypoint_navigator.py
 
 ## 👤 Author
 **Nasim Samiu**  
-- GitHub: [@Nasim-Samiu](https://github.com/Nasim-Samiu)
-- Portfolio Repository: [ROS2-Mini-Projects](https://github.com/Nasim-Samiu/ROS2-Mini-Projects)
+- GitHub: [@Nasim-Sami](https://github.com/Nasim-Sami)
+- Portfolio Repository: [ROS2-Mini-Projects](https://github.com/Nasim-Sami/ROS2-Mini-Projects)

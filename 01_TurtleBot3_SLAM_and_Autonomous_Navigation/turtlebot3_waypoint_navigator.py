@@ -2,7 +2,7 @@
 """
 =============================================================================
 TurtleBot3 Autonomous Waypoint Navigator
-Author: Nasim Samiu (https://github.com/Nasim-Samiu)
+Author: Nasim Sami (https://github.com/Nasim-Sami)
 Repository: ROS2-Mini-Projects
 Project: 01_TurtleBot3_SLAM_and_Autonomous_Navigation
 =============================================================================

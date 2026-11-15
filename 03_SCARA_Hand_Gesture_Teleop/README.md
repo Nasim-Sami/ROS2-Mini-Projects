@@ -3,7 +3,7 @@
 [![ROS 2](https://img.shields.io/badge/ROS_2-Lyrical-blue?logo=ros&logoColor=white)](https://docs.ros.org/)
 [![MediaPipe](https://img.shields.io/badge/AI_Vision-Google_MediaPipe-orange?logo=google&logoColor=white)](https://developers.google.com/mediapipe)
 [![RViz2](https://img.shields.io/badge/Visualization-RViz2-red?logo=ros)](https://docs.ros.org/)
-[![Author](https://img.shields.io/badge/Author-Nasim--Samiu-black?logo=github)](https://github.com/Nasim-Samiu)
+[![Author](https://img.shields.io/badge/Author-Nasim--Samiu-black?logo=github)](https://github.com/Nasim-Sami)
 
 > Contactless, intuitive robot teleoperation: real-time AI hand landmark detection using Google MediaPipe mapped into joint states (`sensor_msgs/msg/JointState`) to control a 4-DOF SCARA robotic manipulator live in RViz.
 
@@ -70,5 +70,5 @@ Move your hand in front of your webcam to control the SCARA robot in real time!
 
 ## 👤 Author
 **Nasim Samiu**  
-- GitHub: [@Nasim-Samiu](https://github.com/Nasim-Samiu)
-- Portfolio Repository: [ROS2-Mini-Projects](https://github.com/Nasim-Samiu/ROS2-Mini-Projects)
+- GitHub: [@Nasim-Sami](https://github.com/Nasim-Sami)
+- Portfolio Repository: [ROS2-Mini-Projects](https://github.com/Nasim-Sami/ROS2-Mini-Projects)

@@ -2,7 +2,7 @@
 
 [![ROS 2](https://img.shields.io/badge/ROS_2-Lyrical-blue?logo=ros&logoColor=white)](https://docs.ros.org/)
 [![OpenCV](https://img.shields.io/badge/Computer_Vision-OpenCV-brightgreen?logo=opencv&logoColor=white)](https://opencv.org/)
-[![Author](https://img.shields.io/badge/Author-Nasim--Samiu-black?logo=github)](https://github.com/Nasim-Samiu)
+[![Author](https://img.shields.io/badge/Author-Nasim--Samiu-black?logo=github)](https://github.com/Nasim-Sami)
 
 > Vision-based mobile robot control using real-time HSV color segmentation with OpenCV. The node tracks a designated colored object via webcam/camera feed and translates its spatial offset into proportional angular and linear velocity commands (`geometry_msgs/msg/TwistStamped`).
 
@@ -72,5 +72,5 @@ python3 color_control.py
 
 ## 👤 Author
 **Nasim Samiu**  
-- GitHub: [@Nasim-Samiu](https://github.com/Nasim-Samiu)
-- Portfolio Repository: [ROS2-Mini-Projects](https://github.com/Nasim-Samiu/ROS2-Mini-Projects)
+- GitHub: [@Nasim-Sami](https://github.com/Nasim-Sami)
+- Portfolio Repository: [ROS2-Mini-Projects](https://github.com/Nasim-Sami/ROS2-Mini-Projects)

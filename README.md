@@ -6,7 +6,7 @@
 [![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-Linux-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://ubuntu.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
-[![GitHub Profile](https://img.shields.io/badge/Developer-Nasim--Samiu-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nasim-Samiu)
+[![GitHub Profile](https://img.shields.io/badge/Developer-Nasim--Samiu-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nasim-Sami)
 
 **A curated collection of practical, production-oriented ROS 2 robotics projects.**  
 Featuring SLAM Mapping, Autonomous Navigation (Nav2), Computer Vision Tracking, AI Gesture Teleoperation, and Industrial Robot Manipulator Motion Planning (MoveIt 2 & OMPL).
@@ -106,7 +106,7 @@ ROS2-Mini-Projects/
 
 ### 1. Clone the Repository
 ```bash
-git clone https://github.com/Nasim-Samiu/ROS2-Mini-Projects.git
+git clone https://github.com/Nasim-Sami/ROS2-Mini-Projects.git
 cd ROS2-Mini-Projects
 ```
 
@@ -136,7 +136,7 @@ Follow the dedicated instructions inside each project folder:
 ## 👨‍💻 Author
 
 **Nasim Samiu**  
-- **GitHub:** [@Nasim-Samiu](https://github.com/Nasim-Samiu)  
+- **GitHub:** [@Nasim-Sami](https://github.com/Nasim-Sami)  
 - **Focus Areas:** Autonomous Mobile Robots (AMR), SLAM, Path Planning, Manipulation, Computer Vision, and ROS 2 Architecture.
 
 ---
