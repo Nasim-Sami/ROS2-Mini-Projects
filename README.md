@@ -2,8 +2,8 @@
 
 <div align="center">
 
-[![ROS 2](https://img.shields.io/badge/ROS_2-Lyrical%20%7C%20Jazzy%20%7C%20Humble-22314E?style=for-the-badge&logo=ros&logoColor=white)](https://docs.ros.org/)
-[![Python](https://img.shields.io/badge/Python-3.10%20%7C%203.12-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![ROS 2](https://img.shields.io/badge/ROS_2-Lyrical-22314E?style=for-the-badge&logo=ros&logoColor=white)](https://docs.ros.org/)
+[![Python](https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![Ubuntu](https://img.shields.io/badge/Ubuntu-Linux-E95420?style=for-the-badge&logo=ubuntu&logoColor=white)](https://ubuntu.com/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](LICENSE)
 [![GitHub Profile](https://img.shields.io/badge/Developer-Nasim--Samiu-181717?style=for-the-badge&logo=github&logoColor=white)](https://github.com/Nasim-Sami)
