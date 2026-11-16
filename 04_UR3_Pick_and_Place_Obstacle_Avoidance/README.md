@@ -4,7 +4,7 @@
 [![MoveIt 2](https://img.shields.io/badge/Motion_Planning-MoveIt_2-brightgreen?logo=ros)](https://moveit.picknik.ai/)
 [![OMPL](https://img.shields.io/badge/Planner-OMPL-orange)](https://ompl.kavrakilab.org/)
 [![Gazebo](https://img.shields.io/badge/Simulation-Gazebo-blueviolet)](https://gazebosim.org/)
-[![Author](https://img.shields.io/badge/Author-Nasim--Samiu-black?logo=github)](https://github.com/Nasim-Sami)
+[![Author](https://img.shields.io/badge/Author-Nasim--Sami-black?logo=github)](https://github.com/Nasim-Sami)
 
 > Industrial 6-DOF manipulator trajectory planning and autonomous execution using Universal Robots UR3 in Gazebo simulation, MoveIt 2, `ros2_control` Joint Trajectory Controllers, and OMPL sampling-based obstacle collision avoidance.
 
@@ -72,6 +72,6 @@ python3 ur3_pick_and_place_obstacle.py
 ---
 
 ## 👤 Author
-**Nasim Samiu**  
+**Nasim Sami**  
 - GitHub: [@Nasim-Sami](https://github.com/Nasim-Sami)
 - Portfolio Repository: [ROS2-Mini-Projects](https://github.com/Nasim-Sami/ROS2-Mini-Projects)

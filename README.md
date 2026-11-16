@@ -32,7 +32,7 @@ This repository demonstrates hands-on implementation of core robotics discipline
 | # | Project Name | Key Technologies | Video Demo | Description |
 | :-: | :--- | :--- | :-: | :--- |
 | **01** | [**TurtleBot3 SLAM & Autonomous Navigation**](01_TurtleBot3_SLAM_and_Autonomous_Navigation/) | `Nav2`, `SLAM Toolbox`, `Gazebo`, `Python API` | [🎬 Watch](01_TurtleBot3_SLAM_and_Autonomous_Navigation/turtlebot3_slam_navigation_demo.webm) | Full SLAM mapping, map serialization, lifecycle management (`autostart:=False`), and automated waypoint patrol. |
-| **02** | [**TurtleBot3 Vision Color Tracking**](02_TurtleBot3_Vision_Color_Tracking/) | `OpenCV`, `HSV Tracking`, `TwistStamped` | [🎬 Watch](02_TurtleBot3_Vision_Color_Tracking/turtlebot3_color_tracking_demo.webm) | Real-time object tracking and visual servoing driving the robot toward target colors. |
+| **02** | [**TurtleBot3 Vision Color Teleoperation**](02_TurtleBot3_Vision_Color_Tracking/) | `OpenCV`, `HSV Tracking`, `TwistStamped` | [🎬 Watch](02_TurtleBot3_Vision_Color_Tracking/turtlebot3_color_tracking_demo.webm) | Touchless virtual air-joystick teleoperating TurtleBot3 using real-time HSV color segmentation and deadzone thresholding. |
 | **03** | [**SCARA Hand Gesture Teleoperation**](03_SCARA_Hand_Gesture_Teleop/) | `MediaPipe AI`, `URDF`, `JointState`, `RViz2` | [🎬 Watch](03_SCARA_Hand_Gesture_Teleop/scara_hand_gesture_teleop_demo.webm) | Touchless hand-tracking teleoperation controlling a 4-DOF SCARA robot live in RViz. |
 | **04** | [**UR3 Pick & Place Obstacle Avoidance**](04_UR3_Pick_and_Place_Obstacle_Avoidance/) | `MoveIt 2`, `OMPL`, `ros2_control`, `UR3` | [🎬 Watch](04_UR3_Pick_and_Place_Obstacle_Avoidance/ur3_obstacle_avoidance_ompl_demo.webm) | Industrial arm manipulation with sampling-based OMPL collision avoidance around obstacles. |
 
@@ -135,7 +135,7 @@ Follow the dedicated instructions inside each project folder:
 
 ## 👨‍💻 Author
 
-**Nasim Samiu**  
+**Nasim Sami**  
 - **GitHub:** [@Nasim-Sami](https://github.com/Nasim-Sami)  
 - **Focus Areas:** Autonomous Mobile Robots (AMR), SLAM, Path Planning, Manipulation, Computer Vision, and ROS 2 Architecture.
 
