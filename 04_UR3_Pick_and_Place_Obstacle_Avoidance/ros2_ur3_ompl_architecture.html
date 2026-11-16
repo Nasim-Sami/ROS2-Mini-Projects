@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>UR3 MoveIt 2 & Gazebo End-to-End Architecture Flow</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background-color: #0f172a;
+      color: #f8fafc;
+    }
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.72rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .pulse-line {
+      stroke-dasharray: 8;
+      animation: dash 1.5s linear infinite;
+    }
+    @keyframes dash {
+      to {
+        stroke-dashoffset: -16;
+      }
+    }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+
+  <!-- Header Section -->
+  <header class="max-w-6xl mx-auto mb-8 text-center border-b border-slate-700 pb-6">
+    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-semibold mb-3">
+      <span>🦾 ROS 2 • MoveIt 2 • OMPL • Gazebo • ros2_control</span>
+    </div>
+    <h1 class="text-2xl md:text-4xl font-extrabold tracking-tight text-white">
+      UR3 Robot Motion & Communication Architecture
+    </h1>
+    <p class="text-slate-400 mt-2 text-sm md:text-base max-w-3xl mx-auto">
+      An end-to-end architectural roadmap tracing data flow from your Python node through MoveIt 2 (OMPL), RViz, ros2_control, and Gazebo physics simulation.
+    </p>
+
+    <!-- Navigation Tabs -->
+    <div class="flex flex-wrap justify-center gap-2 mt-6">
+      <button onclick="switchTab('pipeline')" id="tab-btn-pipeline" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-blue-600 text-white shadow-lg">
+        🔄 Step-by-Step Lifecycle Flow
+      </button>
+      <button onclick="switchTab('diagram')" id="tab-btn-diagram" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-slate-800 border border-slate-700 hover:border-blue-400 text-slate-200">
+        🗺️ System Topology & Network Map
+      </button>
+      <button onclick="switchTab('entities')" id="tab-btn-entities" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-slate-800 border border-slate-700 hover:border-blue-400 text-slate-200">
+        📑 Nodes, Topics & Actions Directory
+      </button>
+    </div>
+  </header>
+
+  <main class="max-w-6xl mx-auto space-y-10">
+
+    <!-- TAB 1: STEP BY STEP PIPELINE -->
+    <section id="tab-pipeline" class="space-y-6">
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-xl font-bold flex items-center gap-2 text-blue-400 mb-2">
+          <span>🚀</span> End-to-End Execution: 6-Stage Lifecycle Flow
+        </h2>
+        <p class="text-sm text-slate-400 mb-6">
+          Step through each phase to discover how your Python code interfaces with MoveIt, calculates collision-free paths, and drives hardware actuators.
+        </p>
+
+        <!-- Interactive Stepper -->
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 mb-6">
+          <button onclick="setStep(0)" class="step-nav py-2 px-3 rounded-lg text-xs font-bold border border-blue-500 bg-blue-500/20 text-blue-300">1. Init & Handshake</button>
+          <button onclick="setStep(1)" class="step-nav py-2 px-3 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800/40 text-gray-400">2. Spawn Obstacle</button>
+          <button onclick="setStep(2)" class="step-nav py-2 px-3 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800/40 text-gray-400">3. Goal Submission</button>
+          <button onclick="setStep(3)" class="step-nav py-2 px-3 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800/40 text-gray-400">4. OMPL Planning</button>
+          <button onclick="setStep(4)" class="step-nav py-2 px-3 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800/40 text-gray-400">5. Joint Execution</button>
+          <button onclick="setStep(5)" class="step-nav py-2 px-3 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800/40 text-gray-400">6. Feedback & Done</button>
+        </div>
+
+        <!-- Step Content Card -->
+        <div id="step-detail-card" class="bg-slate-900/90 rounded-xl p-6 border border-slate-700">
+          <!-- Dynamic Step Content loaded via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 2: SYSTEM ARCHITECTURE DIAGRAM -->
+    <section id="tab-diagram" class="hidden space-y-6">
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-xl">
+        <h2 class="text-xl font-bold flex items-center gap-2 text-cyan-400 mb-2">
+          <span>🗺️</span> Interactive Component Connection Topology
+        </h2>
+        <p class="text-sm text-slate-400 mb-4">
+          Visualize which node talks to which via specific ROS 2 communication channels (Topics and Action Servers).
+        </p>
+
+        <!-- SVG Architecture Diagram -->
+        <div class="w-full overflow-x-auto bg-slate-950 p-4 rounded-xl border border-slate-800 flex justify-center">
+          <svg viewBox="0 0 950 560" class="w-full max-w-4xl text-xs font-mono select-none">
+            <defs>
+              <marker id="arrow-blue" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#38bdf8"/>
+              </marker>
+              <marker id="arrow-green" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#4ade80"/>
+              </marker>
+              <marker id="arrow-amber" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#fbbf24"/>
+              </marker>
+              <marker id="arrow-purple" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+                <path d="M 0 1 L 8 5 L 0 9 z" fill="#c084fc"/>
+              </marker>
+            </defs>
+
+            <!-- 1. Python Node Box (Left) -->
+            <rect x="30" y="160" width="220" height="180" rx="12" fill="#1e293b" stroke="#38bdf8" stroke-width="2"/>
+            <text x="45" y="190" fill="#38bdf8" font-size="13" font-weight="bold">🐍 Your Python Node</text>
+            <text x="45" y="210" fill="#94a3b8" font-size="10">ur3_autonomous_planner</text>
+            <rect x="45" y="225" width="190" height="35" rx="6" fill="#0f172a" stroke="#334155"/>
+            <text x="55" y="246" fill="#f8fafc" font-size="11">ActionClient (/move_action)</text>
+            <rect x="45" y="275" width="190" height="35" rx="6" fill="#0f172a" stroke="#334155"/>
+            <text x="55" y="296" fill="#f8fafc" font-size="11">Publisher (/collision_object)</text>
+
+            <!-- 2. MoveIt 2 Box (Center Top) -->
+            <rect x="360" y="40" width="250" height="230" rx="12" fill="#1e293b" stroke="#4ade80" stroke-width="2"/>
+            <text x="375" y="70" fill="#4ade80" font-size="13" font-weight="bold">🧠 MoveIt 2 (move_group)</text>
+            
+            <rect x="375" y="85" width="220" height="35" rx="6" fill="#0f172a" stroke="#334155"/>
+            <text x="385" y="106" fill="#f8fafc" font-size="11">Planning Scene Monitor</text>
+            
+            <rect x="375" y="130" width="220" height="40" rx="6" fill="#14532d" stroke="#22c55e"/>
+            <text x="385" y="150" fill="#86efac" font-size="11" font-weight="bold">⚙️ OMPL Planner</text>
+            <text x="385" y="164" fill="#bbf7d0" font-size="9">RRTConnect • FCL Collision Check</text>
+
+            <rect x="375" y="180" width="220" height="35" rx="6" fill="#0f172a" stroke="#334155"/>
+            <text x="385" y="202" fill="#f8fafc" font-size="11">Trajectory Execution Manager</text>
+
+            <!-- RViz (Side Car to MoveIt) -->
+            <rect x="400" y="300" width="170" height="70" rx="8" fill="#1e293b" stroke="#64748b" stroke-dasharray="4"/>
+            <text x="415" y="325" fill="#e2e8f0" font-size="11" font-weight="bold">🖥️ RViz 2 (GUI)</text>
+            <text x="415" y="342" fill="#94a3b8" font-size="9">3D Visualizer & Obstacle</text>
+            <text x="415" y="355" fill="#94a3b8" font-size="9">Displays Planned Path</text>
+
+            <!-- 3. Controller Box (Center-Right Bottom) -->
+            <rect x="700" y="50" width="220" height="150" rx="12" fill="#1e293b" stroke="#fbbf24" stroke-width="2"/>
+            <text x="715" y="80" fill="#fbbf24" font-size="13" font-weight="bold">🕹️ ros2_control Framework</text>
+            <rect x="715" y="95" width="190" height="40" rx="6" fill="#0f172a" stroke="#334155"/>
+            <text x="725" y="115" fill="#f8fafc" font-size="10">JointTrajectoryController</text>
+            <text x="725" y="128" fill="#94a3b8" font-size="9">500Hz Spline Interpolator</text>
+            <rect x="715" y="145" width="190" height="35" rx="6" fill="#0f172a" stroke="#334155"/>
+            <text x="725" y="166" fill="#f8fafc" font-size="10">Gazebo HW Plugin</text>
+
+            <!-- 4. Gazebo Physics Simulation (Far Right Bottom) -->
+            <rect x="700" y="270" width="220" height="180" rx="12" fill="#1e293b" stroke="#c084fc" stroke-width="2"/>
+            <text x="715" y="300" fill="#c084fc" font-size="13" font-weight="bold">🌐 Gazebo Simulator</text>
+            <text x="715" y="320" fill="#94a3b8" font-size="10">ODE / DART Physics Engine</text>
+            <rect x="715" y="335" width="190" height="45" rx="6" fill="#0f172a" stroke="#334155"/>
+            <text x="725" y="355" fill="#f8fafc" font-size="11">UR3 6-DOF Robot Model</text>
+            <text x="725" y="370" fill="#a78bfa" font-size="9">Joint Position Actuators</text>
+            <rect x="715" y="390" width="190" height="45" rx="6" fill="#0f172a" stroke="#334155"/>
+            <text x="725" y="410" fill="#f8fafc" font-size="11">Gazebo Clock & Sensor</text>
+            <text x="725" y="425" fill="#94a3b8" font-size="9">Publishes /clock & /joint_states</text>
+
+            <!-- Connections & Arrows -->
+
+            <!-- Path 1: Obstacle Publisher -> MoveIt -->
+            <path d="M 235 290 Q 300 290 340 190 Q 350 115 375 110" fill="none" stroke="#38bdf8" stroke-width="2" marker-end="url(#arrow-blue)"/>
+            <text x="250" y="240" fill="#38bdf8" font-size="10" transform="rotate(-30 250 240)">/collision_object</text>
+
+            <!-- Path 2: Python Action Client -> MoveIt Action Server -->
+            <path d="M 235 235 Q 290 235 320 200 Q 340 180 375 190" fill="none" stroke="#4ade80" stroke-width="2" class="pulse-line" marker-end="url(#arrow-green)"/>
+            <text x="260" y="180" fill="#4ade80" font-size="10">Goal (/move_action)</text>
+
+            <!-- Path 3: MoveIt -> Controller Action -->
+            <path d="M 595 195 Q 640 195 670 150 Q 690 125 715 120" fill="none" stroke="#fbbf24" stroke-width="2" class="pulse-line" marker-end="url(#arrow-amber)"/>
+            <text x="605" y="145" fill="#fbbf24" font-size="9">/follow_joint_trajectory</text>
+
+            <!-- Path 4: Controller -> Gazebo Motors -->
+            <path d="M 810 180 L 810 330" fill="none" stroke="#c084fc" stroke-width="2" marker-end="url(#arrow-purple)"/>
+            <text x="815" y="245" fill="#c084fc" font-size="10">Torque/Position</text>
+
+            <!-- Path 5: Gazebo Joint States Feedback -> MoveIt & Python -->
+            <path d="M 700 420 Q 480 520 220 420 Q 140 380 140 345" fill="none" stroke="#94a3b8" stroke-width="2" stroke-dasharray="4" marker-end="url(#arrow-blue)"/>
+            <text x="440" y="505" fill="#94a3b8" font-size="11">Feedback Loop: /joint_states (50Hz) & /clock</text>
+
+            <!-- MoveIt to RViz update -->
+            <line x1="485" y1="270" x2="485" y2="295" stroke="#64748b" stroke-width="1.5" stroke-dasharray="3"/>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: COMPLETE ENTITIES & DATA CHEATSHEET -->
+    <section id="tab-entities" class="hidden space-y-6">
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-6 shadow-xl overflow-x-auto">
+        <h2 class="text-xl font-bold text-amber-400 mb-4 flex items-center gap-2">
+          <span>📑</span> Nodes, Topics & Actions Reference Directory
+        </h2>
+
+        <table class="w-full text-left text-xs border-collapse">
+          <thead>
+            <tr class="border-b border-slate-700 text-slate-300 bg-slate-900/60">
+              <th class="p-3">Identifier</th>
+              <th class="p-3">Type</th>
+              <th class="p-3">Message Format</th>
+              <th class="p-3">Source ➔ Destination</th>
+              <th class="p-3">Role & Description</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800 text-slate-300">
+            <tr>
+              <td class="p-3 font-mono text-cyan-300">/collision_object</td>
+              <td class="p-3"><span class="badge bg-blue-500/20 text-blue-400 border border-blue-500/40">Topic</span></td>
+              <td class="p-3 font-mono text-xs">moveit_msgs/CollisionObject</td>
+              <td class="p-3">Python Node ➔ MoveIt</td>
+              <td class="p-3">Injects the 3D obstacle box into MoveIt Planning Scene.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-mono text-green-300">/move_action</td>
+              <td class="p-3"><span class="badge bg-green-500/20 text-green-400 border border-green-500/40">Action Server</span></td>
+              <td class="p-3 font-mono text-xs">moveit_msgs/MoveGroup</td>
+              <td class="p-3">Python Node ➔ MoveIt</td>
+              <td class="p-3">Instructs OMPL to plan and execute a collision-free path to target joints.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-mono text-amber-300">/joint_trajectory_controller/follow_joint_trajectory</td>
+              <td class="p-3"><span class="badge bg-amber-500/20 text-amber-400 border border-amber-500/40">Action Server</span></td>
+              <td class="p-3 font-mono text-xs">control_msgs/FollowJointTrajectory</td>
+              <td class="p-3">MoveIt ➔ ros2_control</td>
+              <td class="p-3">Executes the smooth trajectory points via 500Hz spline interpolation.</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-mono text-purple-300">/joint_states</td>
+              <td class="p-3"><span class="badge bg-purple-500/20 text-purple-400 border border-purple-500/40">Topic</span></td>
+              <td class="p-3 font-mono text-xs">sensor_msgs/JointState</td>
+              <td class="p-3">Gazebo/Controller ➔ All Nodes</td>
+              <td class="p-3">Broadcasts real-time angles and velocities for all 6 UR3 joints (50Hz).</td>
+            </tr>
+            <tr>
+              <td class="p-3 font-mono text-slate-300">/clock</td>
+              <td class="p-3"><span class="badge bg-slate-500/20 text-slate-400 border border-slate-500/40">Topic</span></td>
+              <td class="p-3 font-mono text-xs">rosgraph_msgs/Clock</td>
+              <td class="p-3">Gazebo ➔ All Nodes</td>
+              <td class="p-3">Broadcasts simulation physics time required when <code class="text-cyan-300 font-mono">use_sim_time=True</code>.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    const stepsData = [
+      {
+        title: "Step 1: System Startup & Handshake (Initialization)",
+        badge: "Setup Phase",
+        badgeColor: "bg-blue-500/20 text-blue-300 border-blue-500/40",
+        summary: "Launch files bring up Gazebo and MoveIt 2 in the background, preparing execution interfaces and listening servers.",
+        points: [
+          "<b>Gazebo</b> loads the UR3 3D physics model, joints, and gravity simulation environment.",
+          "<b>ros2_control</b> controller manager initializes <code>joint_trajectory_controller</code> and <code>joint_state_broadcaster</code>.",
+          "<b>MoveIt 2</b> loads OMPL plugins and hosts the <code>/move_action</code> action server, waiting for goals.",
+          "The Python script runs and blocks at <code>wait_for_server()</code> until the MoveIt action server is verified online."
+        ],
+        codeSnippet: "self._action_client = ActionClient(self, MoveGroup, '/move_action')\nself._action_client.wait_for_server() # Blocks until server is ready"
+      },
+      {
+        title: "Step 2: Planning Scene Obstacle Injection (Obstacle Spawning)",
+        badge: "Environment Setup",
+        badgeColor: "bg-emerald-500/20 text-emerald-300 border-emerald-500/40",
+        summary: "MoveIt does not inherently know about external obstacles. The node explicitly registers the physical barrier via topics.",
+        points: [
+          "The Python node calls <code>spawn_obstacle()</code>, instantiating a <code>CollisionObject</code> message.",
+          "Sets box dimensions <code>[0.12, 0.20, 0.25]</code> and position <code>(x=0.40, y=0.0, z=0.125)</code> in the <code>world</code> frame.",
+          "Configures <code>co.operation = CollisionObject.ADD</code> and publishes to <b><code>/collision_object</code></b>.",
+          "MoveIt's <b>Planning Scene Monitor</b> registers the box in its internal 3D model and <b>RViz</b> renders it in green."
+        ],
+        codeSnippet: "co.operation = CollisionObject.ADD\nself.collision_pub.publish(co) # MoveIt now recognizes the physical barrier!"
+      },
+      {
+        title: "Step 3: Goal Submission & Feasibility Check",
+        badge: "Action Goal",
+        badgeColor: "bg-amber-500/20 text-amber-300 border-amber-500/40",
+        summary: "Rather than handcrafting waypoints, the node submits only the desired final 6-DOF joint angles to MoveIt.",
+        points: [
+          "Specifies <code>goal.request.group_name = 'ur_manipulator'</code> to target all 6 arm joints.",
+          "Transforms <code>target_joints</code> into a <code>JointConstraint</code> with +/- 0.05 rad tolerance.",
+          "Dispatches the goal asynchronously via <code>send_goal_async(goal)</code> to <b><code>/move_action</code></b>.",
+          "MoveIt validates kinematics limits and collision feasibility, acknowledging with <b><code>goal_handle.accepted = True</code></b>."
+        ],
+        codeSnippet: "send_future = self._action_client.send_goal_async(goal)\nrclpy.spin_until_future_complete(self, send_future)\ngoal_handle = send_future.result() # Cashier accepts your order!"
+      },
+      {
+        title: "Step 4: OMPL Sampling-Based Obstacle Avoidance Planning",
+        badge: "Core AI Planning",
+        badgeColor: "bg-red-500/20 text-red-300 border-red-500/40",
+        summary: "MoveIt's OMPL pipeline dynamically computes an obstacle-free trajectory connecting the current pose to the destination.",
+        points: [
+          "<b>C-Space Sampling:</b> OMPL (RRT-Connect) generates valid random configurations across the 6-dimensional joint space.",
+          "<b>Collision Checking (FCL):</b> Checks robot 3D link meshes against the green obstacle box. Colliding states are pruned.",
+          "<b>Tree Connection:</b> Start and Goal trees expand toward each other until a collision-free path is connected.",
+          "<b>Smoothing & Parameterization:</b> Prunes redundant waypoints into smooth curves and enforces 40% velocity/acceleration caps."
+        ],
+        codeSnippet: "# OMPL autonomously computes the optimal trajectory in C-space:\n# Start (Right Pick Zone) -> Lift Above Obstacle -> Land (Left Place Zone)"
+      },
+      {
+        title: "Step 5: Trajectory Delegation & Motor Execution",
+        badge: "Execution Phase",
+        badgeColor: "bg-purple-500/20 text-purple-300 border-purple-500/40",
+        summary: "MoveIt delegates the planned trajectory to the low-level controller for deterministic, jitter-free joint actuation.",
+        points: [
+          "MoveIt's <b>TrajectoryExecutionManager</b> forwards trajectory points to <code>/joint_trajectory_controller/follow_joint_trajectory</code>.",
+          "The controller interpolates splines at <b>500Hz (2ms loop)</b> using <code>θ(t) = at³ + bt² + ct + d</code> polynomials.",
+          "The <b>Gazebo Hardware Plugin</b> writes torque/position commands directly to the UR3 actuators.",
+          "In Gazebo, the arm elevates, smoothly arcs over the obstacle box, and descends into the place zone."
+        ],
+        codeSnippet: "# MoveGroup -> JointTrajectoryController (500Hz) -> Gazebo Joint Physics"
+      },
+      {
+        title: "Step 6: Closed-Loop Feedback & Mission Success",
+        badge: "Feedback Loop",
+        badgeColor: "bg-cyan-500/20 text-cyan-300 border-cyan-500/40",
+        summary: "Continuous encoder feedback validates trajectory tracking and reports successful goal arrival back to the client.",
+        points: [
+          "Gazebo joint encoders stream real-time motor positions via <b><code>/joint_states</code></b> at 50Hz.",
+          "When the arm reaches the destination within tolerance, the controller signals 'Goal Finished'.",
+          "MoveIt completes the action, returning <b><code>res.error_code.val == 1 (SUCCESS)</code></b> to your Python script.",
+          "Your node logs <code>'Reached destination safely! ✅'</code> and initiates the next task sequence (Home/Place)."
+        ],
+        codeSnippet: "res = res_future.result().result\nif res.error_code.val == 1:\n    self.get_logger().info('Reached destination safely! ✅')"
+      }
+    ];
+
+    function setStep(index) {
+      const data = stepsData[index];
+      const navButtons = document.querySelectorAll('.step-nav');
+      navButtons.forEach((btn, idx) => {
+        if(idx === index) {
+          btn.className = "step-nav py-2 px-3 rounded-lg text-xs font-bold border border-blue-500 bg-blue-500/20 text-blue-300 shadow-md";
+        } else {
+          btn.className = "step-nav py-2 px-3 rounded-lg text-xs font-bold border border-slate-700 bg-slate-800/40 text-gray-400";
+        }
+      });
+
+      const container = document.getElementById('step-detail-card');
+      container.innerHTML = `
+        <div class="flex items-center justify-between mb-4">
+          <span class="badge ${data.badgeColor}">${data.badge}</span>
+          <span class="text-xs text-slate-400 font-mono">Stage ${index + 1} / 6</span>
+        </div>
+        <h3 class="text-lg md:text-xl font-bold text-white mb-2">${data.title}</h3>
+        <p class="text-sm text-slate-300 mb-4 bg-slate-800/70 p-3 rounded-lg border-l-4 border-blue-400">${data.summary}</p>
+        
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">Internal Mechanics (Actions):</h4>
+        <ul class="space-y-2 mb-4 text-xs md:text-sm text-slate-300">
+          ${data.points.map(pt => `<li class="flex items-start gap-2"><span class="text-blue-400 mt-1">▸</span><span>${pt}</span></li>`).join('')}
+        </ul>
+
+        <h4 class="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-1">Corresponding Code Snippet:</h4>
+        <pre class="bg-black/60 p-3 rounded-lg text-xs text-emerald-400 font-mono overflow-x-auto border border-slate-800">${data.codeSnippet}</pre>
+
+        <div class="flex justify-between items-center mt-6 pt-4 border-t border-slate-800 text-xs">
+          <button onclick="setStep(${Math.max(0, index - 1)})" ${index === 0 ? 'disabled class="opacity-30 cursor-not-allowed text-gray-400"' : 'class="text-blue-400 hover:underline font-semibold"'}>◀ Previous Stage</button>
+          <button onclick="setStep(${Math.min(5, index + 1)})" ${index === 5 ? 'disabled class="opacity-30 cursor-not-allowed text-gray-400"' : 'class="text-blue-400 hover:underline font-semibold"'}>Next Stage ▶</button>
+        </div>
+      `;
+    }
+
+    function switchTab(tabId) {
+      document.getElementById('tab-pipeline').classList.add('hidden');
+      document.getElementById('tab-diagram').classList.add('hidden');
+      document.getElementById('tab-entities').classList.add('hidden');
+
+      document.getElementById('tab-btn-pipeline').className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-slate-800 border border-slate-700 hover:border-blue-400 text-slate-200";
+      document.getElementById('tab-btn-diagram').className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-slate-800 border border-slate-700 hover:border-blue-400 text-slate-200";
+      document.getElementById('tab-btn-entities').className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-slate-800 border border-slate-700 hover:border-blue-400 text-slate-200";
+
+      document.getElementById('tab-' + tabId).classList.remove('hidden');
+      document.getElementById('tab-btn-' + tabId).className = "px-4 py-2 rounded-lg text-sm font-semibold transition bg-blue-600 text-white shadow-lg";
+    }
+
+    // Initialize with Step 0
+    setStep(0);
+  </script>
+</body>
+</html>

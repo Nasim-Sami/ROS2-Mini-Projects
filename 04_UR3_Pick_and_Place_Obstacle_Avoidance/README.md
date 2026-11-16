@@ -10,8 +10,9 @@
 
 ---
 
-## 📹 Video Demonstrations
+## 📹 Demonstrations & Architecture
 
+- 🌐 **Interactive Architecture Guide:** [`ros2_ur3_ompl_architecture.html`](ros2_ur3_ompl_architecture.html) *(Open in any browser for an interactive SVG topology & step-by-step lifecycle flow)*
 - 🎬 **Obstacle Avoidance Video:** [`ur3_obstacle_avoidance_ompl_demo.webm`](ur3_obstacle_avoidance_ompl_demo.webm)
 - 🎬 **Pick & Place Trajectory:** [`ur3_pick_and_place_demo.webm`](ur3_pick_and_place_demo.webm)
 - **Watch in Linux Terminal:**
@@ -62,6 +63,7 @@ python3 ur3_pick_and_place_obstacle.py
 ```text
 04_UR3_Pick_and_Place_Obstacle_Avoidance/
 ├── README.md                            # Documentation
+├── ros2_ur3_ompl_architecture.html      # Interactive End-to-End Architecture & Flow Guide
 ├── ur3_pick_and_place.py                # Direct JointTrajectory action client script
 ├── ur3_moveit_autonomous.py             # MoveIt 2 autonomous planning script
 ├── ur3_pick_and_place_obstacle.py       # OMPL collision avoidance around obstacle
