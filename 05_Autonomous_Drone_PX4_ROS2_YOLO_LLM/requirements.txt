@@ -1,0 +1,14 @@
+# Autonomous Drone PX4 + ROS 2 + YOLOv8 + LLM Dependencies
+# Python >= 3.10
+
+# AI Computer Vision & Neural Networks
+ultralytics>=8.0.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+
+# LLM Natural Language Mission Planning & Speech
+ollama>=0.1.0
+requests>=2.31.0
+
+# Testing & Validation
+pytest>=7.4.0
