@@ -35,7 +35,6 @@ This repository demonstrates hands-on implementation of core robotics discipline
 | **02** | [**TurtleBot3 Vision Color Teleoperation**](02_TurtleBot3_Vision_Color_Tracking/) | `OpenCV`, `HSV Tracking`, `TwistStamped` | [🎬 Watch](02_TurtleBot3_Vision_Color_Tracking/turtlebot3_color_tracking_demo.webm) | Touchless virtual air-joystick teleoperating TurtleBot3 using real-time HSV color segmentation and deadzone thresholding. |
 | **03** | [**SCARA Hand Gesture Teleoperation**](03_SCARA_Hand_Gesture_Teleop/) | `MediaPipe AI`, `URDF`, `JointState`, `RViz2` | [🎬 Watch](03_SCARA_Hand_Gesture_Teleop/scara_hand_gesture_teleop_demo.webm) | Touchless hand-tracking teleoperation controlling a 4-DOF SCARA robot live in RViz. |
 | **04** | [**UR3 Pick & Place Obstacle Avoidance**](04_UR3_Pick_and_Place_Obstacle_Avoidance/) | `MoveIt 2`, `OMPL`, `ros2_control`, `UR3` | [🎬 Watch](04_UR3_Pick_and_Place_Obstacle_Avoidance/ur3_obstacle_avoidance_ompl_demo.webm) | Industrial arm manipulation with sampling-based OMPL collision avoidance around obstacles. |
-| **05** | [**Autonomous Drone PX4 + ROS 2 + YOLOv8 + LLM**](05_Autonomous_Drone_PX4_ROS2_YOLO_LLM/) | `PX4 SITL`, `ROS 2 Jazzy`, `Gazebo Harmonic`, `QGroundControl`, `YOLOv8`, `Ollama LLM` | [📖 Explore](05_Autonomous_Drone_PX4_ROS2_YOLO_LLM/) | Autonomous quadcopter with bilingual natural language planning (EN & BN), 3D altitude-aware gatekeeper, onboard YOLOv8 vision, and PX4 offboard flight. |
 
 ---
 
