@@ -13,7 +13,7 @@
 
 **An end-to-end, production-grade autonomous quadcopter pipeline featuring Natural Language Mission Planning (English & Bengali), a Physics-based 3D Safety Gatekeeper, Real-time YOLOv8 Computer Vision Perception, and PX4 Offboard Trajectory Tracking.**
 
-[System Architecture](#-system-architecture) • [Key Features](#-key-features) • [Installation](#-installation--setup) • [Quick Start](#-step-by-step-execution-guide) • [Verification Tests](#-verification-and-benchmark-suite)
+[System Architecture](#-system-architecture) • [Theory & Mathematics](../theory_and_mathematics/README.md) • [Key Features](#-key-features) • [Installation](#-installation--setup) • [Quick Start](#-step-by-step-execution-guide) • [Verification Tests](#-verification-and-benchmark-suite)
 
 </div>
 
@@ -24,6 +24,10 @@
 This project implements a complete autonomous aerial robotics stack designed for real-world inspection and surveillance missions. Operators can command the quadcopter through speech or natural language text in either **English** or **Bengali** (e.g., *"Take off to 10 meters, go forward 15 meters, take a photo"* or *"সামনে ৫ মিটার যাও"*). 
 
 The mission command is processed through an on-device Small Language Model (**Ollama `qwen2.5:1.5b`**) into structured flight primitives. Before sending any flight setpoint to the drone, a deterministic **3D Altitude-Aware Trajectory Gatekeeper** evaluates environmental perception from an onboard **Ultralytics YOLOv8** neural network and current telemetry. If an obstacle is detected in the flight corridor at low altitude, the mission is rejected with an actionable safety warning. If the drone is commanded to cruise safely above the obstacle height ($\ge 3.0\text{ m}$), safe overflight clearance is granted and the drone flies smoothly in Gazebo Harmonic while streaming telemetry to both a custom **Web Ground Station** and **QGroundControl**.
+
+> [!TIP]
+> **Mathematical & Physical Foundations Documentation:**
+> For rigorous textbook derivations of the optical physics ($D = \frac{H \cdot f}{h}$), 4D Hamilton Quaternions, Euler rate singularity proofs ($\dot{\psi} = \frac{q\sin\phi+r\cos\phi}{\cos\theta}$), EKF2 Taylor-series Jacobians, and interactive 3D WebGL labs, see **[`theory_and_mathematics/`](../theory_and_mathematics/README.md)**.
 
 ---
 

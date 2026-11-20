@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Human vs Robot Arm Kinematics & Shoulder Singularity</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #111827;
+      --card-border: #1f2937;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --primary: #3b82f6;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --cyan: #06b6d4;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+    }
+    canvas { touch-action: none; }
+  </style>
+</head>
+<body class="p-4 antialiased">
+  <div class="max-w-5xl mx-auto space-y-4">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-3 border-b border-gray-800 gap-2">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 text-xs font-semibold bg-emerald-500/20 text-emerald-400 rounded border border-emerald-500/30">Anatomy vs Robotics</span>
+          <h1 class="text-xl font-bold tracking-tight text-white">Human Shoulder vs Industrial Robot Arm</h1>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">মানুষ কেন সবদিকে হাত নাড়াতে পারে আর রোবট কেন ১টি নির্দিষ্ট সমতলে (Plane) আটকে থাকে</p>
+      </div>
+      <!-- Mode Toggle -->
+      <div class="flex items-center gap-1 bg-gray-900 p-1 rounded-lg border border-gray-800 text-xs">
+        <button id="btnRobot" onclick="setMode('robot')" class="px-3 py-1.5 rounded-md font-medium transition-colors bg-blue-600 text-white shadow">
+          1. Robot Arm (1-DOF Hinges)
+        </button>
+        <button id="btnHuman" onclick="setMode('human')" class="px-3 py-1.5 rounded-md font-medium transition-colors text-gray-400 hover:text-white">
+          2. Human Arm (3-DOF Ball & Socket)
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- 3D Viewport (7 Cols) -->
+      <div class="lg:col-span-7 bg-gray-900/80 rounded-xl border border-gray-800 p-3 relative flex flex-col items-center">
+        <!-- Live HUD Status -->
+        <div class="absolute top-5 left-5 z-10 flex flex-col gap-1 pointer-events-none">
+          <div id="singularityBadge" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="singularityText">Normal Kinematics (r > 0)</span>
+          </div>
+          <span class="text-[11px] text-gray-400">Mouse Drag to Orbit View | Scroll to Zoom</span>
+        </div>
+
+        <!-- Metric Readout Overlay -->
+        <div class="absolute top-5 right-5 z-10 font-mono text-[11px] bg-black/70 backdrop-blur px-3 py-2 rounded-lg border border-gray-800 space-y-1">
+          <div class="flex justify-between gap-4 text-gray-400">
+            <span>Radius (r = &radic;(x&sup2;+y&sup2;)):</span>
+            <span id="hudRadius" class="font-bold text-white">125 mm</span>
+          </div>
+          <div class="flex justify-between gap-4 text-gray-400">
+            <span>Height (Z):</span>
+            <span id="hudZ" class="font-bold text-white">180 mm</span>
+          </div>
+          <div class="flex justify-between gap-4 text-gray-400">
+            <span>Sideways Velocity (v<sub>t</sub> = r&middot;&omega;):</span>
+            <span id="hudVt" class="font-bold text-cyan-400">Enabled</span>
+          </div>
+        </div>
+
+        <canvas id="canvas3d" width="560" height="420" class="w-full max-w-full rounded-lg bg-black/60 cursor-grab active:cursor-grabbing border border-gray-800"></canvas>
+
+        <div class="w-full flex items-center justify-between mt-2 px-1 text-xs text-gray-500">
+          <span>হলুদ সমতল (Yellow Sheet): কাঁধ ও কনুই শুধুমাত্র এই সমতলে কাজ করতে পারে!</span>
+          <button onclick="resetCamera()" class="hover:text-gray-300 underline">Reset View</button>
+        </div>
+      </div>
+
+      <!-- Controls & Anatomy Breakdown (5 Cols) -->
+      <div class="lg:col-span-5 space-y-3">
+        <!-- Joint Controls Panel -->
+        <div class="bg-gray-900/80 rounded-xl border border-gray-800 p-4 space-y-3">
+          <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+            <h2 class="text-sm font-semibold text-gray-200">Joint Sliders</h2>
+            <button onclick="triggerShoulderSingularity()" class="px-2.5 py-1 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded shadow transition-transform active:scale-95">
+              ⚠️ Arm Straight Up (r = 0)
+            </button>
+          </div>
+
+          <!-- Joint 1 (Base - Robot only) -->
+          <div id="ctrlJ1" class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="text-cyan-400 font-medium">Joint 1: Base / কোমরের ঘূর্ণন (Yaw Axis - Z)</label>
+              <span id="valJ1" class="font-mono text-cyan-300 font-bold">0°</span>
+            </div>
+            <input id="sliderJ1" type="range" min="-180" max="180" value="0" step="1" oninput="updateArm()"
+                   class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
+            <div class="text-[10px] text-gray-500">একমাত্র এই জয়েন্টটি পুরো হাতকে ডানে-বামে (Sideways) ঘোরায়।</div>
+          </div>
+
+          <!-- Joint 2 (Shoulder Pitch) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="text-emerald-400 font-medium">Joint 2: Shoulder / কাঁধের কবজা (Pitch Axis - Y)</label>
+              <span id="valJ2" class="font-mono text-emerald-300 font-bold">45°</span>
+            </div>
+            <input id="sliderJ2" type="range" min="-90" max="90" value="45" step="1" oninput="updateArm()"
+                   class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+            <div class="text-[10px] text-gray-500">দরজার কবজার মতো শুধু সোজা উপরে বা নিচে নামে।</div>
+          </div>
+
+          <!-- Joint 3 (Elbow Pitch) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="text-rose-400 font-medium">Joint 3: Elbow / কনুইয়ের কবজা (Pitch Axis - Y)</label>
+              <span id="valJ3" class="font-mono text-rose-300 font-bold">45°</span>
+            </div>
+            <input id="sliderJ3" type="range" min="-150" max="150" value="45" step="1" oninput="updateArm()"
+                   class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-rose-500" />
+            <div class="text-[10px] text-gray-500">কাঁধের সমান্তরালে হাত ভাজ বা সোজা করে।</div>
+          </div>
+
+          <!-- Human-Only Shoulder Sideways Abduction (Visible in Human Mode) -->
+          <div id="ctrlHumanSideways" class="hidden space-y-1 p-2 rounded-lg bg-purple-500/10 border border-purple-500/30">
+            <div class="flex justify-between text-xs">
+              <label class="text-purple-300 font-medium">Human Ball-and-Socket: কাঁধ ডানে-বামে খোলা (Abduction)</label>
+              <span id="valHumanAbduct" class="font-mono text-purple-200 font-bold">0°</span>
+            </div>
+            <input id="sliderHumanAbduct" type="range" min="-60" max="60" value="0" step="1" oninput="updateArm()"
+                   class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-500" />
+            <div class="text-[10px] text-purple-300">মানুষের কাঁধ কোনো কবজা নয়, এটি বল-অ্যান্ড-সকেট! তাই কোমর না ঘুরিয়েও কাঁধ ডানে-বামে যেতে পারে।</div>
+          </div>
+
+          <!-- Singularity Warning Box -->
+          <div id="singularityWarning" class="hidden p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 space-y-1">
+            <div class="font-bold flex items-center gap-1 text-rose-400">
+              <span>🚨 SHOULDER SINGULARITY (r = 0)!</span>
+            </div>
+            <p>
+              হাত সোজা খাড়া হয়ে বেসের উলম্ব অক্ষের ওপর চলে এসেছে!
+            </p>
+            <p class="text-gray-300">
+              এখন Joint 1 (Base) নাড়িয়ে দেখুন: হাত ডানে বা বামে সরবে না, শুধু নিজের জায়গায় লাটিমের মতো ঘুরবে! কোনো মোটরই এখন হাতকে পাশের দিকে সরাতে পারবে না।
+            </p>
+          </div>
+        </div>
+
+        <!-- Comparative Science Breakdown -->
+        <div class="bg-gray-900/80 rounded-xl border border-gray-800 p-3.5 text-xs space-y-2 text-gray-300">
+          <div class="font-bold text-gray-100 flex items-center gap-1.5">
+            <span>🔬 অ্যানাটমি বনাম রোবোটিক্সের আসল পার্থক্য</span>
+          </div>
+          <div class="space-y-1.5 text-gray-400 leading-relaxed">
+            <div>
+              <strong class="text-purple-400">১. মানুষের কাঁধ (Ball-and-Socket Joint):</strong><br/>
+              মানুষের কাঁধ একটি একক মোটর বা দরজার কবজা নয়। কাঁধে একটি গোলাকার বল গর্তে বসানো থাকে, যাতে একা কাঁধেই <b>৩টি ডিগ্রি অফ ফ্রিডম (3-DOF)</b> থাকে! কোমর স্থির রেখেই আপনি হাত ডানে, বামে, উপরে, নিচে যেকোনো দিকে নিতে পারেন।
+            </div>
+            <div>
+              <strong class="text-emerald-400">২. রোবটের কাঁধ ও কনুই (1-DOF Revolute Hinges):</strong><br/>
+              রোবটের প্রতিটি জয়েন্ট মাত্র একটি খাঁটি মোটরের শ্যাফট (দরজার কবজার মতো ১-DOF)। রোবটের কাঁধ ডানে-বামে ছড়াতে পারে না। তাই রোবটের কাঁধ ও কনুই হাতকে <b>হলুদ কালারের ২-মাত্রিক সমতলে (2D Plane)</b> আটকে রাখে।
+            </div>
+            <div>
+              <strong class="text-cyan-400">৩. রোবটের ডানে-বামে যাওয়ার উপায়:</strong><br/>
+              রোবটকে পাশের দিকে যেতে হলে পুরো হলুদ সমতলটিকে ঘোরাতে হয়, যার একমাত্র চাবিকাঠি হলো <b>Joint 1 (Base)</b>! কিন্তু হাত যখন ঠিক অক্ষের ওপর ($r=0$) খাড়া হয়ে যায়, তখন সেই বেস ঘুরলেও হাত পাশের দিকে নড়ার কোনো সুযোগ থাকে না।
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas3d');
+    const ctx = canvas.getContext('2d');
+
+    let mode = 'robot'; // 'robot' or 'human'
+    let j1 = 0, j2 = 45, j3 = 45; // Degrees
+    let humanAbduct = 0; // Degrees
+
+    const L1 = 100; // Shoulder to elbow length
+    const L2 = 90;  // Elbow to wrist length
+    const baseH = 40; // Base height
+
+    // Camera Orbit
+    let camYaw = -0.7, camPitch = 0.4, camDist = 360;
+    let isDragging = false;
+    let lastMouseX = 0, lastMouseY = 0;
+
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      camYaw += dx * 0.008;
+      camPitch = Math.max(-1.4, Math.min(1.4, camPitch + dy * 0.008));
+      render();
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      camDist = Math.max(200, Math.min(600, camDist + e.deltaY * 0.3));
+      render();
+    }, { passive: false });
+
+    function resetCamera() {
+      camYaw = -0.7;
+      camPitch = 0.4;
+      camDist = 360;
+      render();
+    }
+
+    function setMode(m) {
+      mode = m;
+      const btnR = document.getElementById('btnRobot');
+      const btnH = document.getElementById('btnHuman');
+      const ctrlH = document.getElementById('ctrlHumanSideways');
+
+      if (mode === 'robot') {
+        btnR.className = 'px-3 py-1.5 rounded-md font-medium transition-colors bg-blue-600 text-white shadow';
+        btnH.className = 'px-3 py-1.5 rounded-md font-medium transition-colors text-gray-400 hover:text-white';
+        ctrlH.classList.add('hidden');
+        humanAbduct = 0;
+      } else {
+        btnH.className = 'px-3 py-1.5 rounded-md font-medium transition-colors bg-purple-600 text-white shadow';
+        btnR.className = 'px-3 py-1.5 rounded-md font-medium transition-colors text-gray-400 hover:text-white';
+        ctrlH.classList.remove('hidden');
+      }
+      updateArm();
+    }
+
+    function triggerShoulderSingularity() {
+      document.getElementById('sliderJ2').value = 90;
+      document.getElementById('sliderJ3').value = 0;
+      if (mode === 'human') document.getElementById('sliderHumanAbduct').value = 0;
+      updateArm();
+    }
+
+    function deg2rad(d) { return d * Math.PI / 180; }
+
+    function updateArm() {
+      j1 = parseFloat(document.getElementById('sliderJ1').value);
+      j2 = parseFloat(document.getElementById('sliderJ2').value);
+      j3 = parseFloat(document.getElementById('sliderJ3').value);
+      humanAbduct = parseFloat(document.getElementById('sliderHumanAbduct').value);
+
+      document.getElementById('valJ1').textContent = j1 + '°';
+      document.getElementById('valJ2').textContent = j2 + '°';
+      document.getElementById('valJ3').textContent = j3 + '°';
+      document.getElementById('valHumanAbduct').textContent = humanAbduct + '°';
+
+      // Forward Kinematics to calculate Wrist Position
+      const radJ1 = deg2rad(j1);
+      const radJ2 = deg2rad(j2);
+      const radJ3 = deg2rad(j3);
+      const radAbduct = deg2rad(humanAbduct);
+
+      // In the arm's sagittal plane:
+      // Shoulder is at (0, 0, baseH)
+      // Elbow:
+      const e_r = L1 * Math.cos(radJ2);
+      const e_z = baseH + L1 * Math.sin(radJ2);
+
+      // Wrist:
+      const totalPitch = radJ2 + radJ3;
+      let w_r = e_r + L2 * Math.cos(totalPitch);
+      let w_z = e_z + L2 * Math.sin(totalPitch);
+
+      // Map from plane to 3D via Joint 1 (Yaw) + human Abduction
+      let x = w_r * Math.cos(radJ1);
+      let y = w_r * Math.sin(radJ1);
+
+      if (mode === 'human' && humanAbduct !== 0) {
+        // Human abduction adds direct lateral movement without rotating base!
+        const lateralDist = (L1 + L2) * Math.sin(radAbduct) * 0.7;
+        x -= lateralDist * Math.sin(radJ1);
+        y += lateralDist * Math.cos(radJ1);
+        w_r = Math.sqrt(x*x + y*y);
+      }
+
+      const r = Math.sqrt(x*x + y*y);
+      document.getElementById('hudRadius').textContent = r.toFixed(1) + ' mm';
+      document.getElementById('hudZ').textContent = w_z.toFixed(1) + ' mm';
+
+      const isSingular = r < 5.0 && mode === 'robot';
+      const badge = document.getElementById('singularityBadge');
+      const badgeText = document.getElementById('singularityText');
+      const warnBox = document.getElementById('singularityWarning');
+      const hudVt = document.getElementById('hudVt');
+
+      if (isSingular) {
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-bounce';
+        badgeText.textContent = '🚨 SHOULDER SINGULARITY (r = 0)';
+        warnBox.classList.remove('hidden');
+        hudVt.className = 'font-bold text-rose-400';
+        hudVt.textContent = 'BLOCKED (vt = 0)';
+      } else {
+        badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        badgeText.textContent = mode === 'robot' ? 'Normal Robot 2D Plane' : 'Human 3-DOF Shoulder Active';
+        warnBox.classList.add('hidden');
+        hudVt.className = 'font-bold text-cyan-400';
+        hudVt.textContent = 'Enabled';
+      }
+
+      render();
+    }
+
+    // 3D Projection Engine
+    function project(p, cx, cy) {
+      // Rotate by camYaw (around Z) and camPitch (around X)
+      const cyaw = Math.cos(camYaw), syaw = Math.sin(camYaw);
+      const cpitch = Math.cos(camPitch), spitch = Math.sin(camPitch);
+
+      // Rotate around Z
+      const x1 = p[0] * cyaw - p[1] * syaw;
+      const y1 = p[0] * syaw + p[1] * cyaw;
+      const z1 = p[2];
+
+      // Rotate around X
+      const x2 = x1;
+      const y2 = y1 * cpitch - z1 * spitch;
+      const z2 = y1 * spitch + z1 * cpitch;
+
+      const zCam = z2 + camDist;
+      if (zCam <= 10) return null;
+      const fov = 340;
+      const scale = fov / zCam;
+
+      return {
+        x: cx + x2 * scale,
+        y: cy - y2 * scale,
+        z: z2
+      };
+    }
+
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2 + 50;
+
+      // Draw Ground Grid (Z = 0)
+      ctx.strokeStyle = 'rgba(75, 85, 99, 0.2)';
+      ctx.lineWidth = 1;
+      const span = 160, step = 40;
+      for (let x = -span; x <= span; x += step) {
+        const s1 = project([x, -span, 0], cx, cy);
+        const s2 = project([x, span, 0], cx, cy);
+        if (s1 && s2) { ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke(); }
+      }
+      for (let y = -span; y <= span; y += step) {
+        const s1 = project([-span, y, 0], cx, cy);
+        const s2 = project([span, y, 0], cx, cy);
+        if (s1 && s2) { ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke(); }
+      }
+
+      // Draw Vertical Base Z-Axis (Infinite rotation pole)
+      const pZ0 = project([0, 0, -20], cx, cy);
+      const pZ1 = project([0, 0, 240], cx, cy);
+      if (pZ0 && pZ1) {
+        ctx.strokeStyle = '#06b6d4';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(pZ0.x, pZ0.y); ctx.lineTo(pZ1.x, pZ1.y); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // Calculate 3D Joint Positions
+      const radJ1 = deg2rad(j1);
+      const radJ2 = deg2rad(j2);
+      const radJ3 = deg2rad(j3);
+      const radAbduct = deg2rad(humanAbduct);
+
+      const pBase = [0, 0, 0];
+      const pShoulder = [0, 0, baseH];
+
+      // Elbow in Sagittal Plane
+      const e_r = L1 * Math.cos(radJ2);
+      const e_z = baseH + L1 * Math.sin(radJ2);
+
+      // Wrist in Sagittal Plane
+      const totalPitch = radJ2 + radJ3;
+      const w_r = e_r + L2 * Math.cos(totalPitch);
+      const w_z = e_z + L2 * Math.sin(totalPitch);
+
+      // Convert to 3D World Coordinates
+      let pElbow = [e_r * Math.cos(radJ1), e_r * Math.sin(radJ1), e_z];
+      let pWrist = [w_r * Math.cos(radJ1), w_r * Math.sin(radJ1), w_z];
+
+      if (mode === 'human' && humanAbduct !== 0) {
+        const latE = L1 * Math.sin(radAbduct) * 0.5;
+        const latW = (L1 + L2) * Math.sin(radAbduct) * 0.7;
+        pElbow[0] -= latE * Math.sin(radJ1);
+        pElbow[1] += latE * Math.cos(radJ1);
+        pWrist[0] -= latW * Math.sin(radJ1);
+        pWrist[1] += latW * Math.cos(radJ1);
+      }
+
+      // 1. Draw Translucent Arm Motion Plane (Yellow Sheet) for Robot Arm
+      if (mode === 'robot') {
+        const planeDist = 200;
+        const planeCorners = [
+          [0, 0, 0],
+          [planeDist * Math.cos(radJ1), planeDist * Math.sin(radJ1), 0],
+          [planeDist * Math.cos(radJ1), planeDist * Math.sin(radJ1), 230],
+          [0, 0, 230]
+        ];
+        const sc = planeCorners.map(p => project(p, cx, cy)).filter(Boolean);
+        if (sc.length === 4) {
+          ctx.beginPath();
+          ctx.moveTo(sc[0].x, sc[0].y);
+          ctx.lineTo(sc[1].x, sc[1].y);
+          ctx.lineTo(sc[2].x, sc[2].y);
+          ctx.lineTo(sc[3].x, sc[3].y);
+          ctx.closePath();
+          ctx.fillStyle = 'rgba(234, 179, 8, 0.12)'; // Translucent yellow
+          ctx.fill();
+          ctx.strokeStyle = 'rgba(234, 179, 8, 0.4)';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
+        }
+      }
+
+      // 2. Draw Robot Links (3D Rods)
+      const sBase = project(pBase, cx, cy);
+      const sShoulder = project(pShoulder, cx, cy);
+      const sElbow = project(pElbow, cx, cy);
+      const sWrist = project(pWrist, cx, cy);
+
+      // Base Pillar (Cylinder Stand)
+      if (sBase && sShoulder) {
+        ctx.strokeStyle = '#64748b';
+        ctx.lineWidth = 8;
+        ctx.beginPath(); ctx.moveTo(sBase.x, sBase.y); ctx.lineTo(sShoulder.x, sShoulder.y); ctx.stroke();
+      }
+
+      // Upper Arm Link L1
+      if (sShoulder && sElbow) {
+        ctx.strokeStyle = mode === 'human' ? '#c084fc' : '#3b82f6';
+        ctx.lineWidth = 7;
+        ctx.beginPath(); ctx.moveTo(sShoulder.x, sShoulder.y); ctx.lineTo(sElbow.x, sElbow.y); ctx.stroke();
+      }
+
+      // Forearm Link L2
+      if (sElbow && sWrist) {
+        ctx.strokeStyle = mode === 'human' ? '#a855f7' : '#0ea5e9';
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(sElbow.x, sElbow.y); ctx.lineTo(sWrist.x, sWrist.y); ctx.stroke();
+      }
+
+      // 3. Draw Joints (Spheres & Hinge Pins)
+      // Shoulder Joint
+      if (sShoulder) {
+        ctx.beginPath();
+        ctx.arc(sShoulder.x, sShoulder.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = mode === 'human' ? '#ec4899' : '#10b981';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Elbow Joint
+      if (sElbow) {
+        ctx.beginPath();
+        ctx.arc(sElbow.x, sElbow.y, 6.5, 0, Math.PI * 2);
+        ctx.fillStyle = '#f43f5e';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+      }
+
+      // Wrist Center / Tool
+      if (sWrist) {
+        const isSingular = Math.sqrt(pWrist[0]*pWrist[0] + pWrist[1]*pWrist[1]) < 5.0 && mode === 'robot';
+        ctx.beginPath();
+        ctx.arc(sWrist.x, sWrist.y, 8, 0, Math.PI * 2);
+        ctx.fillStyle = isSingular ? '#ef4444' : '#22c55e';
+        ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+      }
+
+      // Draw Radius Line from Z-Axis to Wrist on Floor
+      const sFloorProj = project([pWrist[0], pWrist[1], 0], cx, cy);
+      if (sBase && sFloorProj && sWrist) {
+        ctx.setLineDash([3, 3]);
+        ctx.strokeStyle = '#f59e0b';
+        ctx.lineWidth = 1.5;
+        // From Origin to projection
+        ctx.beginPath(); ctx.moveTo(sBase.x, sBase.y); ctx.lineTo(sFloorProj.x, sFloorProj.y); ctx.stroke();
+        // Up to wrist
+        ctx.beginPath(); ctx.moveTo(sFloorProj.x, sFloorProj.y); ctx.lineTo(sWrist.x, sWrist.y); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+    }
+
+    // Initialize
+    updateArm();
+    render();
+  </script>
+</body>
+</html>

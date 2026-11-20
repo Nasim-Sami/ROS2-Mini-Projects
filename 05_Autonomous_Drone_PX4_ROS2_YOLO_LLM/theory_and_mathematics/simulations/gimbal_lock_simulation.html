@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Gimbal Lock & Quaternion 3D Simulation</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --card: #111827;
+      --card-border: #1f2937;
+      --text: #f3f4f6;
+      --muted: #9ca3af;
+      --primary: #3b82f6;
+      --danger: #ef4444;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --cyan: #06b6d4;
+      --magenta: #ec4899;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      user-select: none;
+    }
+    canvas {
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="p-4 antialiased">
+  <div class="max-w-5xl mx-auto space-y-4">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center justify-between pb-3 border-b border-gray-800 gap-2">
+      <div>
+        <div class="flex items-center gap-2">
+          <span class="px-2 py-0.5 text-xs font-semibold bg-blue-500/20 text-blue-400 rounded border border-blue-500/30">PX4 & Drone Dynamics</span>
+          <h1 class="text-xl font-bold tracking-tight text-white">Gimbal Lock & Quaternions Interactive Lab</h1>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">গিম্বল লক কেন ঘটে এবং কীভাবে ৪-মাত্রিক কোয়াটারনিয়ন ড্রোনকে ক্র্যাশ থেকে বাঁচায়</p>
+      </div>
+      <!-- Mode Tabs -->
+      <div class="flex items-center gap-1 bg-gray-900 p-1 rounded-lg border border-gray-800">
+        <button id="tabEuler" onclick="setMode('euler')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-blue-600 text-white shadow">
+          1. Euler Mode (Roll, Pitch, Yaw)
+        </button>
+        <button id="tabQuat" onclick="setMode('quat')" class="px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-400 hover:text-white">
+          2. Quaternion Mode (q = [w, x, y, z])
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Workspace Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+      <!-- 3D Canvas Viewport (7 Cols) -->
+      <div class="lg:col-span-7 bg-gray-900/80 rounded-xl border border-gray-800 p-3 relative flex flex-col items-center">
+        <!-- Overlay HUD Status -->
+        <div class="absolute top-5 left-5 z-10 flex flex-col gap-1 pointer-events-none">
+          <div id="hudLockStatus" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="lockStatusText">Normal 3-DOF Rotation (Safe)</span>
+          </div>
+          <span class="text-[11px] text-gray-400">Mouse Drag to Orbit View | Scroll to Zoom</span>
+        </div>
+
+        <!-- 3D Ring Legend -->
+        <div class="absolute top-5 right-5 z-10 flex flex-col gap-1 text-[11px] font-mono bg-black/60 backdrop-blur px-2.5 py-1.5 rounded-lg border border-gray-800">
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-1 rounded bg-cyan-400"></span>
+            <span class="text-gray-300">Outer Ring: Yaw (Z)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-1 rounded bg-emerald-400"></span>
+            <span class="text-gray-300">Middle Ring: Pitch (Y)</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="w-3 h-1 rounded bg-rose-400"></span>
+            <span class="text-gray-300">Inner Ring: Roll (X)</span>
+          </div>
+        </div>
+
+        <canvas id="viewport" width="560" height="420" class="w-full max-w-full rounded-lg bg-black/50 cursor-grab active:cursor-grabbing border border-gray-800/80"></canvas>
+
+        <div class="w-full flex items-center justify-between mt-2 px-1 text-xs text-gray-500">
+          <span>Camera Orbit: Drag Left/Right/Up/Down</span>
+          <button onclick="resetCamera()" class="hover:text-gray-300 underline">Reset Camera</button>
+        </div>
+      </div>
+
+      <!-- Controls & Diagnostics Panel (5 Cols) -->
+      <div class="lg:col-span-5 space-y-3">
+        <!-- Euler Controls Container -->
+        <div id="eulerControls" class="bg-gray-900/80 rounded-xl border border-gray-800 p-4 space-y-3">
+          <div class="flex items-center justify-between border-b border-gray-800 pb-2">
+            <h2 class="text-sm font-semibold text-gray-200">Euler Angle Controls</h2>
+            <button onclick="triggerGimbalLock()" class="px-2.5 py-1 text-xs font-bold bg-rose-600 hover:bg-rose-500 text-white rounded shadow transition-transform active:scale-95">
+              ⚠️ Trigger Gimbal Lock (Pitch = 90°)
+            </button>
+          </div>
+
+          <!-- Pitch Slider (Middle Ring) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="text-emerald-400 font-medium">Pitch Angle (&theta; - Middle Ring)</label>
+              <span id="pitchVal" class="font-mono text-emerald-300 font-bold">0°</span>
+            </div>
+            <input id="pitchSlider" type="range" min="-90" max="90" value="0" step="1" oninput="updateEuler()"
+                   class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-emerald-500" />
+            <div class="flex justify-between text-[10px] text-gray-500">
+              <span>-90° (Down)</span>
+              <span>0° (Level)</span>
+              <span>+90° (Gimbal Lock!)</span>
+            </div>
+          </div>
+
+          <!-- Roll Slider (Inner Ring) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="text-rose-400 font-medium">Roll Angle (&phi; - Inner Ring)</label>
+              <span id="rollVal" class="font-mono text-rose-300 font-bold">0°</span>
+            </div>
+            <input id="rollSlider" type="range" min="-180" max="180" value="0" step="1" oninput="updateEuler()"
+                   class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-rose-500" />
+          </div>
+
+          <!-- Yaw Slider (Outer Ring) -->
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="text-cyan-400 font-medium">Yaw Angle (&psi; - Outer Ring)</label>
+              <span id="yawVal" class="font-mono text-cyan-300 font-bold">0°</span>
+            </div>
+            <input id="yawSlider" type="range" min="-180" max="180" value="0" step="1" oninput="updateEuler()"
+                   class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-cyan-500" />
+          </div>
+
+          <!-- Alert Box on Lock -->
+          <div id="lockWarningBox" class="hidden p-3 rounded-lg bg-rose-500/10 border border-rose-500/30 text-xs text-rose-300 space-y-1.5">
+            <div class="font-bold flex items-center gap-1.5 text-rose-400">
+              <span>🚨 GIMBAL LOCK DETECTED!</span>
+            </div>
+            <p>
+              লক্ষ্য করুন: <b>নীল (Yaw)</b> এবং <b>লাল (Roll)</b> রিং দুটি এখন ঠিক একই তলে (Coplanar) সমাপতিত হয়ে গেছে!
+            </p>
+            <p class="text-gray-300">
+              এখন Roll এবং Yaw স্লাইডার নাড়িয়ে দেখুন—দুটোই ড্রোনকে একই দিকে ঘোরাচ্ছে! ড্রোন তার ১টি ডিগ্রিজ অফ ফ্রিডম হারিয়ে ফেলেছে।
+            </p>
+          </div>
+
+          <!-- Mathematical Singularity Visualizer -->
+          <div class="p-2.5 rounded-lg bg-black/40 border border-gray-800 font-mono text-[11px] space-y-1">
+            <div class="text-gray-400">Flight Kinematics Denominator:</div>
+            <div class="flex items-center justify-between text-xs">
+              <span>cos(&theta;) = cos(<span id="cosThetaDeg">0</span>°) =</span>
+              <span id="cosThetaVal" class="font-bold text-emerald-400">1.0000</span>
+            </div>
+            <div id="singularityText" class="text-gray-500">
+              Rate equation: &omega;<sub>yaw</sub> = (q&middot;sin&phi; + r&middot;cos&phi;) / cos(&theta;)
+            </div>
+          </div>
+        </div>
+
+        <!-- Quaternion Controls Container -->
+        <div id="quatControls" class="hidden bg-gray-900/80 rounded-xl border border-gray-800 p-4 space-y-3">
+          <div class="border-b border-gray-800 pb-2">
+            <h2 class="text-sm font-semibold text-gray-200">Quaternion 4D Vector Lab</h2>
+            <p class="text-xs text-gray-400">Euler's Axis-Angle Theorem: Rotation around any 3D vector</p>
+          </div>
+
+          <div class="space-y-1">
+            <div class="flex justify-between text-xs">
+              <label class="text-blue-400 font-medium">Rotation Angle (&theta;)</label>
+              <span id="quatAngleVal" class="font-mono text-blue-300 font-bold">90°</span>
+            </div>
+            <input id="quatAngleSlider" type="range" min="0" max="360" value="90" step="1" oninput="updateQuat()"
+                   class="w-full h-1.5 bg-gray-700 rounded-lg appearance-none cursor-pointer accent-blue-500" />
+          </div>
+
+          <!-- Axis Selection -->
+          <div class="space-y-1">
+            <label class="text-xs text-gray-400">Arbitrary Axis Vector (u_x, u_y, u_z):</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button onclick="setQuatAxis(1,0,0)" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-xs rounded border border-gray-700 text-rose-400">X-Axis</button>
+              <button onclick="setQuatAxis(0,1,0)" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-xs rounded border border-gray-700 text-emerald-400">Y-Axis</button>
+              <button onclick="setQuatAxis(0,0,1)" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-xs rounded border border-gray-700 text-cyan-400">Z-Axis</button>
+            </div>
+            <div class="grid grid-cols-2 gap-2 pt-1">
+              <button onclick="setQuatAxis(0.577, 0.577, 0.577)" class="px-2 py-1 bg-gray-800 hover:bg-gray-700 text-xs rounded border border-gray-700 text-purple-400">Diagonal (1,1,1)</button>
+              <button onclick="setQuatAxis(0, 1, 0); document.getElementById('quatAngleSlider').value=90; updateQuat();" class="px-2 py-1 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 text-xs rounded border border-blue-500/40">Vertical 90° (No Lock!)</button>
+            </div>
+          </div>
+
+          <!-- Live 4D Quaternion Readout -->
+          <div class="p-3 rounded-lg bg-black/50 border border-gray-800 font-mono text-xs space-y-1.5">
+            <div class="text-blue-400 font-bold">q = [w, x, y, z]</div>
+            <div class="grid grid-cols-2 gap-1 text-[11px]">
+              <div>w: <span id="q_w" class="text-white font-bold">0.7071</span></div>
+              <div>x: <span id="q_x" class="text-white font-bold">0.0000</span></div>
+              <div>y: <span id="q_y" class="text-white font-bold">0.7071</span></div>
+              <div>z: <span id="q_z" class="text-white font-bold">0.0000</span></div>
+            </div>
+            <div class="pt-1 border-t border-gray-800 text-[11px] text-emerald-400 flex justify-between">
+              <span>Unit Norm &radic;(w&sup2;+x&sup2;+y&sup2;+z&sup2;):</span>
+              <span id="q_norm" class="font-bold">1.0000</span>
+            </div>
+          </div>
+
+          <div class="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs text-emerald-300">
+            ✅ <b>কেন কোনো লক নেই?</b><br/>
+            কোয়াটারনিয়নে কোনো ভাগ ($\div 0$) বা ট্রাইগোনোমেট্রিক ট্যানজেন্ট ($\tan\theta$) নেই! এটি ৪-মাত্রিক গোলকে মসৃণভাবে যেকোনো কোণে ঘূর্ণন হিসাব করতে পারে।
+          </div>
+        </div>
+
+        <!-- Educational Explanation Card -->
+        <div class="bg-gray-900/80 rounded-xl border border-gray-800 p-3.5 text-xs space-y-2 text-gray-300">
+          <div class="font-bold text-gray-100 flex items-center gap-1.5">
+            <span>💡 বাংলায় মূল কনসেপ্ট</span>
+          </div>
+          <ol class="list-decimal list-inside space-y-1.5 text-gray-400 leading-relaxed">
+            <li><strong class="text-gray-200">গিম্বল লক কী:</strong> ড্রোনকে মুক্তভাবে ঘোরানোর জন্য তিনটি রিং থাকে (Yaw, Pitch, Roll)। কিন্তু যখন মাঝের Pitch রিং খাড়া ৯০° কোণে ওঠে, তখন ভেতরের Roll রিং ও বাইরের Yaw রিং একই সমান্তরাল তলে চলে আসে।</li>
+            <li><strong class="text-gray-200">সমস্যা:</strong> ফলে একটি রিং নষ্ট হয়ে যায়! ড্রোন আর অনুভূমিকভাবে ঘুরতে পারে না এবং ম্যাথমেটিক্যাল সূত্রে $\cos(90^\circ) = 0$ হওয়ায় ডিভাইড-বাই-জিরো হয়ে ফ্লাইট কম্পিউটার হ্যাং করে।</li>
+            <li><strong class="text-gray-200">কোয়াটারনিয়নের সমাধান:</strong> হ্যামিল্টনের ৪-মাত্রিক হাইপার-স্ফিয়ারে তিনটি আলাদা রিংয়ের বদলে যেকোনো অক্ষের সাপেক্ষে একবারে ঘূর্ণন হিসাব করা হয়। তাই মহাবিশ্বের কোনো কোণেই ড্রোন লক বা ক্র্যাশ হয় না।</li>
+          </ol>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- 3D Vector Math & Engine ---
+    const canvas = document.getElementById('viewport');
+    const ctx = canvas.getContext('2d');
+
+    let mode = 'euler'; // 'euler' or 'quat'
+    let roll = 0, pitch = 0, yaw = 0; // in degrees
+    let quatAxis = [0, 1, 0];
+    let quatAngle = 90; // degrees
+
+    // Camera Orbit Angles
+    let camYaw = -0.5, camPitch = 0.35, camDist = 380;
+    let isDragging = false;
+    let lastMouseX = 0, lastMouseY = 0;
+
+    // Canvas Mouse Listeners for Orbiting
+    canvas.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+    window.addEventListener('mouseup', () => isDragging = false);
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - lastMouseX;
+      const dy = e.clientY - lastMouseY;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+      camYaw += dx * 0.008;
+      camPitch = Math.max(-1.4, Math.min(1.4, camPitch + dy * 0.008));
+      render();
+    });
+
+    canvas.addEventListener('wheel', (e) => {
+      e.preventDefault();
+      camDist = Math.max(200, Math.min(600, camDist + e.deltaY * 0.3));
+      render();
+    }, { passive: false });
+
+    function resetCamera() {
+      camYaw = -0.5;
+      camPitch = 0.35;
+      camDist = 380;
+      render();
+    }
+
+    // --- Mode Switching ---
+    function setMode(m) {
+      mode = m;
+      const tabE = document.getElementById('tabEuler');
+      const tabQ = document.getElementById('tabQuat');
+      const cE = document.getElementById('eulerControls');
+      const cQ = document.getElementById('quatControls');
+
+      if (mode === 'euler') {
+        tabE.className = 'px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-blue-600 text-white shadow';
+        tabQ.className = 'px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-400 hover:text-white';
+        cE.classList.remove('hidden');
+        cQ.classList.add('hidden');
+      } else {
+        tabQ.className = 'px-3 py-1.5 text-xs font-medium rounded-md transition-colors bg-blue-600 text-white shadow';
+        tabE.className = 'px-3 py-1.5 text-xs font-medium rounded-md transition-colors text-gray-400 hover:text-white';
+        cQ.classList.remove('hidden');
+        cE.classList.add('hidden');
+      }
+      render();
+    }
+
+    // --- Matrix and Quaternion Helpers ---
+    function deg2rad(d) { return d * Math.PI / 180; }
+
+    // 3x3 Matrix Multiplication
+    function matMul(A, B) {
+      const C = [0,0,0, 0,0,0, 0,0,0];
+      for (let r=0; r<3; r++) {
+        for (let c=0; c<3; c++) {
+          C[r*3 + c] = A[r*3+0]*B[0*3+c] + A[r*3+1]*B[1*3+c] + A[r*3+2]*B[2*3+c];
+        }
+      }
+      return C;
+    }
+
+    function transformVec(M, v) {
+      return [
+        M[0]*v[0] + M[1]*v[1] + M[2]*v[2],
+        M[3]*v[0] + M[4]*v[1] + M[5]*v[2],
+        M[6]*v[0] + M[7]*v[1] + M[8]*v[2]
+      ];
+    }
+
+    // Elementary Rotations
+    function rotX(rad) {
+      const c = Math.cos(rad), s = Math.sin(rad);
+      return [1,0,0, 0,c,-s, 0,s,c];
+    }
+    function rotY(rad) {
+      const c = Math.cos(rad), s = Math.sin(rad);
+      return [c,0,s, 0,1,0, -s,0,c];
+    }
+    function rotZ(rad) {
+      const c = Math.cos(rad), s = Math.sin(rad);
+      return [c,-s,0, s,c,0, 0,0,1];
+    }
+
+    // Quaternion to 3x3 Matrix
+    function quatToMatrix(w, x, y, z) {
+      return [
+        1 - 2*(y*y + z*z),  2*(x*y - z*w),      2*(x*z + y*w),
+        2*(x*y + z*w),      1 - 2*(x*x + z*z),  2*(y*z - x*w),
+        2*(x*z - y*w),      2*(y*z + x*w),      1 - 2*(x*x + y*y)
+      ];
+    }
+
+    // --- UI Handlers ---
+    function updateEuler() {
+      roll = parseFloat(document.getElementById('rollSlider').value);
+      pitch = parseFloat(document.getElementById('pitchSlider').value);
+      yaw = parseFloat(document.getElementById('yawSlider').value);
+
+      document.getElementById('rollVal').textContent = roll + '°';
+      document.getElementById('pitchVal').textContent = pitch + '°';
+      document.getElementById('yawVal').textContent = yaw + '°';
+
+      // Check Gimbal Lock
+      const cosVal = Math.cos(deg2rad(pitch));
+      document.getElementById('cosThetaDeg').textContent = pitch;
+      document.getElementById('cosThetaVal').textContent = cosVal.toFixed(4);
+
+      const isLocked = Math.abs(pitch) >= 88;
+      const statusBadge = document.getElementById('hudLockStatus');
+      const statusText = document.getElementById('lockStatusText');
+      const warningBox = document.getElementById('lockWarningBox');
+      const singText = document.getElementById('singularityText');
+
+      if (isLocked) {
+        statusBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-rose-500/20 text-rose-400 border border-rose-500/40 animate-bounce';
+        statusText.textContent = '⚠️ GIMBAL LOCK ACTIVE! (Pitch = ' + pitch + '°)';
+        warningBox.classList.remove('hidden');
+        singText.innerHTML = '<span class="text-rose-400 font-bold">DIVIDE BY ZERO: cos(' + pitch + '°) &approx; 0 &rarr; &omega; &rarr; &infin; (FLIGHT CONTROLLER CRASH!)</span>';
+      } else {
+        statusBadge.className = 'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+        statusText.textContent = 'Normal 3-DOF Rotation (Safe)';
+        warningBox.classList.add('hidden');
+        singText.innerHTML = 'Rate equation: &omega;<sub>yaw</sub> = (q&middot;sin&phi; + r&middot;cos&phi;) / cos(&theta;)';
+      }
+
+      render();
+    }
+
+    function triggerGimbalLock() {
+      document.getElementById('pitchSlider').value = 90;
+      updateEuler();
+    }
+
+    function setQuatAxis(x, y, z) {
+      const len = Math.sqrt(x*x + y*y + z*z);
+      quatAxis = [x/len, y/len, z/len];
+      updateQuat();
+    }
+
+    function updateQuat() {
+      quatAngle = parseFloat(document.getElementById('quatAngleSlider').value);
+      document.getElementById('quatAngleVal').textContent = quatAngle + '°';
+
+      const halfRad = deg2rad(quatAngle) / 2;
+      const sinH = Math.sin(halfRad);
+      const cosH = Math.cos(halfRad);
+
+      const w = cosH;
+      const x = quatAxis[0] * sinH;
+      const y = quatAxis[1] * sinH;
+      const z = quatAxis[2] * sinH;
+      const norm = Math.sqrt(w*w + x*x + y*y + z*z);
+
+      document.getElementById('q_w').textContent = w.toFixed(4);
+      document.getElementById('q_x').textContent = x.toFixed(4);
+      document.getElementById('q_y').textContent = y.toFixed(4);
+      document.getElementById('q_z').textContent = z.toFixed(4);
+      document.getElementById('q_norm').textContent = norm.toFixed(4);
+
+      render();
+    }
+
+    // --- 3D Projection Engine ---
+    function project(p, camM, cx, cy) {
+      // Rotate by Camera Orbit
+      const pCam = transformVec(camM, p);
+      // Perspective projection
+      const z = pCam[2] + camDist;
+      if (z <= 10) return null;
+      const fov = 350;
+      const scale = fov / z;
+      return {
+        x: cx + pCam[0] * scale,
+        y: cy - pCam[1] * scale,
+        z: pCam[2]
+      };
+    }
+
+    function drawRing3D(R, matrix, color, width, cx, cy, camM) {
+      ctx.beginPath();
+      ctx.strokeStyle = color;
+      ctx.lineWidth = width;
+      const steps = 60;
+      let started = false;
+
+      for (let i = 0; i <= steps; i++) {
+        const a = (i / steps) * Math.PI * 2;
+        // Point on XY circle
+        const localPt = [R * Math.cos(a), R * Math.sin(a), 0];
+        const worldPt = transformVec(matrix, localPt);
+        const scr = project(worldPt, camM, cx, cy);
+        if (scr) {
+          if (!started) { ctx.moveTo(scr.x, scr.y); started = true; }
+          else { ctx.lineTo(scr.x, scr.y); }
+        }
+      }
+      ctx.stroke();
+    }
+
+    function drawDrone3D(matrix, cx, cy, camM) {
+      const armLen = 35;
+      const rotorR = 12;
+
+      // Drone arms in local frame (X-configuration)
+      const arms = [
+        [[0,0,0], [armLen, armLen, 0]],
+        [[0,0,0], [-armLen, armLen, 0]],
+        [[0,0,0], [armLen, -armLen, 0]],
+        [[0,0,0], [-armLen, -armLen, 0]],
+      ];
+
+      // Draw Arms
+      ctx.lineWidth = 3;
+      ctx.strokeStyle = '#ffffff';
+      arms.forEach(([p1, p2]) => {
+        const w1 = transformVec(matrix, p1);
+        const w2 = transformVec(matrix, p2);
+        const s1 = project(w1, camM, cx, cy);
+        const s2 = project(w2, camM, cx, cy);
+        if (s1 && s2) {
+          ctx.beginPath();
+          ctx.moveTo(s1.x, s1.y);
+          ctx.lineTo(s2.x, s2.y);
+          ctx.stroke();
+        }
+      });
+
+      // Draw 4 Rotor Rings
+      const rotorCenters = [
+        [armLen, armLen, 0],
+        [-armLen, armLen, 0],
+        [armLen, -armLen, 0],
+        [-armLen, -armLen, 0]
+      ];
+
+      rotorCenters.forEach((rc, idx) => {
+        const isFront = rc[1] > 0;
+        ctx.strokeStyle = isFront ? '#ef4444' : '#3b82f6'; // Red for front, blue for rear
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i <= 24; i++) {
+          const a = (i / 24) * Math.PI * 2;
+          const localPt = [rc[0] + rotorR * Math.cos(a), rc[1] + rotorR * Math.sin(a), 0];
+          const worldPt = transformVec(matrix, localPt);
+          const scr = project(worldPt, camM, cx, cy);
+          if (scr) {
+            if (i === 0) ctx.moveTo(scr.x, scr.y);
+            else ctx.lineTo(scr.x, scr.y);
+          }
+        }
+        ctx.stroke();
+      });
+
+      // Forward Heading Arrow (Y-axis / Pitch forward)
+      const arrowStart = [0, 0, 0];
+      const arrowEnd = [0, armLen * 1.5, 0];
+      const ws = transformVec(matrix, arrowStart);
+      const we = transformVec(matrix, arrowEnd);
+      const ss = project(ws, camM, cx, cy);
+      const se = project(we, camM, cx, cy);
+      if (ss && se) {
+        ctx.beginPath();
+        ctx.strokeStyle = '#22c55e';
+        ctx.lineWidth = 2.5;
+        ctx.moveTo(ss.x, ss.y);
+        ctx.lineTo(se.x, se.y);
+        ctx.stroke();
+      }
+    }
+
+    // --- Main Render Loop ---
+    function render() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+
+      // Camera Matrix: Orbit
+      const mCamYaw = rotY(-camYaw);
+      const mCamPitch = rotX(camPitch);
+      const camM = matMul(mCamPitch, mCamYaw);
+
+      // Draw Grid on Ground (Z = -140)
+      ctx.strokeStyle = 'rgba(75, 85, 99, 0.2)';
+      ctx.lineWidth = 1;
+      const gridSpan = 160, gridStep = 40;
+      for (let x = -gridSpan; x <= gridSpan; x += gridStep) {
+        const s1 = project([x, -130, -gridSpan], camM, cx, cy);
+        const s2 = project([x, -130, gridSpan], camM, cx, cy);
+        if (s1 && s2) {
+          ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke();
+        }
+      }
+      for (let z = -gridSpan; z <= gridSpan; z += gridStep) {
+        const s1 = project([-gridSpan, -130, z], camM, cx, cy);
+        const s2 = project([gridSpan, -130, z], camM, cx, cy);
+        if (s1 && s2) {
+          ctx.beginPath(); ctx.moveTo(s1.x, s1.y); ctx.lineTo(s2.x, s2.y); ctx.stroke();
+        }
+      }
+
+      if (mode === 'euler') {
+        // --- Euler Mechanical Gimbal Representation ---
+        // 1. Outer Ring (Yaw - Cyan): Rotates around Z
+        const mYaw = rotZ(deg2rad(yaw));
+
+        // 2. Middle Ring (Pitch - Emerald): Mounted inside Yaw ring, rotates around Y'
+        const mPitch = rotY(deg2rad(pitch));
+        const mYawPitch = matMul(mYaw, mPitch);
+
+        // 3. Inner Ring (Roll - Rose): Mounted inside Pitch ring, rotates around X''
+        const mRoll = rotX(deg2rad(roll));
+        const mDrone = matMul(mYawPitch, mRoll);
+
+        // Draw Rings
+        // Outer Ring: Cyan (Radius 120)
+        drawRing3D(120, mYaw, '#06b6d4', 3.5, cx, cy, camM);
+
+        // Middle Ring: Emerald (Radius 95)
+        drawRing3D(95, mYawPitch, '#10b981', 3.5, cx, cy, camM);
+
+        // Inner Ring: Rose (Radius 70)
+        drawRing3D(70, mDrone, '#f43f5e', 3.5, cx, cy, camM);
+
+        // Center Quadcopter Drone
+        drawDrone3D(mDrone, cx, cy, camM);
+
+      } else {
+        // --- Quaternion 4D Rotation Representation ---
+        const halfRad = deg2rad(quatAngle) / 2;
+        const sinH = Math.sin(halfRad);
+        const cosH = Math.cos(halfRad);
+
+        const w = cosH;
+        const x = quatAxis[0] * sinH;
+        const y = quatAxis[1] * sinH;
+        const z = quatAxis[2] * sinH;
+
+        const mQuat = quatToMatrix(w, x, y, z);
+
+        // Draw Rotation Axis Vector (Magenta)
+        const axisLen = 130;
+        const pAxisStart = [-quatAxis[0]*axisLen, -quatAxis[1]*axisLen, -quatAxis[2]*axisLen];
+        const pAxisEnd = [quatAxis[0]*axisLen, quatAxis[1]*axisLen, quatAxis[2]*axisLen];
+        const sA1 = project(pAxisStart, camM, cx, cy);
+        const sA2 = project(pAxisEnd, camM, cx, cy);
+        if (sA1 && sA2) {
+          ctx.beginPath();
+          ctx.strokeStyle = '#ec4899';
+          ctx.lineWidth = 3;
+          ctx.setLineDash([5, 5]);
+          ctx.moveTo(sA1.x, sA1.y);
+          ctx.lineTo(sA2.x, sA2.y);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
+
+        // Single Smooth Orientation Cage (Purple)
+        drawRing3D(100, mQuat, '#a855f7', 2.5, cx, cy, camM);
+
+        // Center Quadcopter Drone
+        drawDrone3D(mQuat, cx, cy, camM);
+      }
+    }
+
+    // Initialize
+    updateEuler();
+    updateQuat();
+    render();
+  </script>
+</body>
+</html>
